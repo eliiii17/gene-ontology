@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>{% block title %}Gene Ontology Analysis{% endblock %}</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+	<header>
+		<h1>Gene Ontology Analysis System</h1>
+	</header>
+	<nav>
+		<ul>
+			<li><a href="/" class="{% if active_page == 'index' %}nav-active{% endif %}">Home</a></li>
+			<li><a href="/search" class="{% if active_page == 'search' %}nav-active{% endif %}">Search</a></li>
+			<li><a href="/similarity" class="{% if active_page == 'similarity' %}nav-active{% endif %}">Similarity
+					Analysis</a>
+			</li>
+			<li><a href="/pathfinder" class="{% if active_page == 'pathfinder' %}nav-active{% endif %}">Path Finder</a>
+			</li>
+			<li><a href="/annotation-check"
+					class="{% if active_page == 'annotation_check' %}nav-active{% endif %}">Annotation Check</a></li>
+			<li><a href="/stats" class="{% if active_page == 'stats' %}nav-active{% endif %}">Statistics</a></li>
+			<li><a href="/upload" class="{% if active_page == 'upload' %}nav-active{% endif %}">Upload Data</a></li>
+		</ul>
+	</nav>
+	<div class="container">
+		<div class="content">
+			{% with messages = get_flashed_messages(with_categories=true) %}
+			{% if messages %}
+			<div class="flash-messages">
+				{% for category, message in messages %}
+				<div class="flash-message {{ category }}">{{ message }}</div>
+				{% endfor %}
+			</div>
+			{% endif %}
+			{% endwith %}
+			{% block content %}{% endblock %}
+		</div>
+	</div>
+	<script src="{{ url_for('static', filename='js/autocomplete.js') }}"></script>
+	{% block page_scripts %}{% endblock %}
+</body>
+
+</html>

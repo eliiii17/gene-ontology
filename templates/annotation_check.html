@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Annotation Check{% endblock %}
+
+{% block content %}
+<h2>Gene Annotation Enrichment Check</h2>
+<p class="description">
+	Check if a gene is associated with a GO term family by searching for the term's name.
+</p>
+
+<div class="examples-box">
+	<strong>Examples:</strong>
+	<a href="/annotation-check?gene_query=TP53&term_query=GO%3A0006915+-+Apoptotic+process&term_id=GO%3A0006915">TP53 in
+		"apoptosis"</a>
+	<a href="/annotation-check?gene_query=TP53&term_query=GO%3A0015979+-+Photosynthesis&term_id=GO%3A0015979">TP53 in
+		"photosynthesis"</a>
+</div>
+
+<form action="/annotation-check" method="get" class="similarity-form">
+	<div class="form-row">
+		<div class="autocomplete-container">
+			<input type="text" id="gene_query" name="gene_query" placeholder="Gene ID or Symbol (e.g., TP53)"
+				value="{{ gene_query or '' }}" required class="search-input autocomplete-input" autocomplete="off">
+			<div class="autocomplete-results" id="results_gene"></div>
+		</div>
+
+		{# This logic is now simplified because the JS handles the term selection #}
+		<div class="autocomplete-container">
+			<input type="text" id="term_query" name="term_query" placeholder="Term Name (e.g., apoptosis)"
+				value="{{ term_query or '' }}" required class="search-input autocomplete-input" autocomplete="off">
+			<input type="hidden" id="term_id" name="term_id" value="{{ term_id or '' }}">
+			<div class="autocomplete-results" id="results_term"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<button type="submit" class="search-button">Check Annotation</button>
+	</div>
+</form>
+
+{% if result %}
+<div class="results-box">
+	<h3>Result</h3>
+	{% if result.error %}
+	<p class="error">{{ result.error }}</p>
+	{% else %}
+	<p>
+		The gene <strong><a href="/gene/{{ result.gene.id }}">{{ result.gene.symbol }}</a></strong>
+		{% if result.is_annotated %}
+		<span class="positive-result">IS ASSOCIATED</span>
+		{% else %}
+		<span class="negative-result">IS NOT ASSOCIATED</span>
+		{% endif %}
+		with the term family of <strong><a href="/term/{{ result.term.id }}">{{ result.term.id }}</a> ({{
+			result.term.name }})</strong>.
+	</p>
+
+	{% if result.is_annotated and result.other_genes %}
+	<hr>
+	<h4>Other Genes in this Term Family</h4>
+	<p>Found {{ result.other_genes|length }} other gene(s) associated with this term or its descendants:</p>
+	<ul class="results-list">
+		{% for gene in result.other_genes %}
+		<li>
+			<strong><a href="/gene/{{ gene.id }}">{{ gene.symbol }}</a></strong>: {{ gene.name }}
+		</li>
+		{% endfor %}
+	</ul>
+	{% endif %}
+	{% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+	setupTermAutocomplete('term_query', 'term_id', 'results_term');
+	setupGeneAutocomplete('gene_query', 'results_gene');
+
+	document.querySelector('.similarity-form').addEventListener('submit', function (e) {
+		// Fallback for term input: if user types an exact GO ID, copy it to the hidden field
+		const termIdInput = document.getElementById('term_id');
+		if (!termIdInput.value) {
+			termIdInput.value = document.getElementById('term_query').value;
+		}
+	});
+</script>
+{% endblock %}

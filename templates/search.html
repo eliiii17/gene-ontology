@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Search{% endblock %}
+
+{% block content %}
+    <h2>Search for Genes or GO Terms</h2>
+    <form action="/search" method="get" class="search-form">
+        <input type="text" name="query" placeholder="Enter search query..." value="{{ query or '' }}" class="search-input" required>
+        <div class="search-options">
+            <label><input type="radio" name="search_type" value="gene" checked> Gene</label>
+            <label><input type="radio" name="search_type" value="term" > GO Term</label>
+        </div>
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    {% if query %}
+        <h3>Search Result</h3>
+        {% if not results %}
+			<p>No results found for <i>{{ query }}</i>.</p>
+        {% else %}
+			<p>Found <strong>{{ results|length }}</strong> results.</p>
+			<ul class="results-list">
+				{% for result in results %}
+					<li>
+						{% if search_type == 'gene' %}
+							<a href="/gene/{{ result.id }}"><strong>{{ result.symbol }}</strong></a> - {{ result.name }}
+						{% else %} <!-- GO term result -->
+							<a href="/term/{{ result.id }}"><strong>{{ result.id }}</strong></a> - {{ result.name }} <span class="muted">({{ result.namespace }})</span>
+						{% endif %}
+					</li>
+				{% endfor %}
+			</ul>
+        {% endif %}
+    {% endif %}
+{% endblock %}

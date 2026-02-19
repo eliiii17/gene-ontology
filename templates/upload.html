@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data{% endblock %}
+
+{% block content %}
+<h2>Upload Ontology and Annotation Files</h2>
+<p class="description">
+	Update the system by uploading new versions of the Gene Ontology (OBO) or Gene Annotation (GAF) files.
+</p>
+
+<form action="/upload" method="post" enctype="multipart/form-data" class="similarity-form">
+	<div class="form-row">
+		<label for="obo_file">Gene Ontology File (.obo):</label>
+		<input type="file" name="obo_file" id="obo_file" accept=".obo">
+	</div>
+
+	<div class="form-row">
+		<label for="gaf_file">Gene Annotation File (.gaf):</label>
+		<input type="file" name="gaf_file" id="gaf_file" accept=".gaf">
+	</div>
+
+	<div class="form-row">
+		<button type="submit" class="search-button">Upload and Reload System</button>
+	</div>
+</form>
+
+<div class="examples-box">
+	<strong>Note:</strong> Uploading large files may take a few moments. The system will reload automatically.
+</div>
+{% endblock %}

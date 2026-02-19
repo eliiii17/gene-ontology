@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Similarity Analysis{% endblock %}
+
+{% block content %}
+<h2>Semantic Similarity Analysis</h2>
+<p class="description">
+	Calculate the semantic similarity between two GO terms or two genes.
+</p>
+
+<form action="/similarity" method="get" class="similarity-form">
+	<div class="form-row">
+		<label>Mode:</label>
+		<label><input type="radio" name="mode" value="term" {% if mode=='term' or not mode %}checked{% endif %}> Term vs
+			Term</label>
+		<label><input type="radio" name="mode" value="gene" {% if mode=='gene' %}checked{% endif %}> Gene vs
+			Gene</label>
+		<label><input type="radio" name="mode" value="matrix" {% if mode=='matrix' %}checked{% endif %}> Gene Matrix
+			(Multi-Gene)</label>
+	</div>
+
+	<div id="term-inputs" class="form-row {% if mode != 'term' and mode %}hidden{% endif %}">
+		<div class="autocomplete-container">
+			<input type="text" id="term_a_query" name="term_a_query" placeholder="First Term Name (e.g., cytoplasm)"
+				value="{{ term_a_query or '' }}" class="search-input autocomplete-input" autocomplete="off">
+			<input type="hidden" id="term_a_id" name="term_a_id" value="{{ term_a_id or '' }}">
+			<div class="autocomplete-results" id="results_a"></div>
+		</div>
+		<div class="autocomplete-container">
+			<input type="text" id="term_b_query" name="term_b_query" placeholder="Second Term Name (e.g., nucleus)"
+				value="{{ term_b_query or '' }}" class="search-input autocomplete-input" autocomplete="off">
+			<input type="hidden" id="term_b_id" name="term_b_id" value="{{ term_b_id or '' }}">
+			<div class="autocomplete-results" id="results_b"></div>
+		</div>
+	</div>
+
+	<div id="gene-inputs" class="form-row {% if mode != 'gene' %}hidden{% endif %}">
+		<div class="autocomplete-container">
+			<input type="text" id="gene_a_query" name="gene_a_query" placeholder="First Gene (e.g., TP53)"
+				value="{{ gene_a_query or '' }}" class="search-input autocomplete-input" autocomplete="off">
+			<div class="autocomplete-results" id="results_gene_a"></div>
+		</div>
+		<div class="autocomplete-container">
+			<input type="text" id="gene_b_query" name="gene_b_query" placeholder="Second Gene (e.g., APOE)"
+				value="{{ gene_b_query or '' }}" class="search-input autocomplete-input" autocomplete="off">
+			<div class="autocomplete-results" id="results_gene_b"></div>
+		</div>
+	</div>
+
+	<div id="matrix-inputs" class="form-row {% if mode != 'matrix' %}hidden{% endif %}">
+		<div style="display: flex; gap: 10px; width: 100%; align-items: center;">
+			<input type="text" name="gene_list_query" id="gene_list_query"
+				placeholder="Enter Gene Symbols (comma separated, e.g., TP53, APOE, BRCA1)"
+				value="{{ gene_list_query or '' }}" class="search-input" style="flex-grow: 1;">
+			<button type="button" class="search-button" style="background-color: #17a2b8; white-space: nowrap;"
+				onclick="loadTopGenes()">
+				Load Top 10
+			</button>
+		</div>
+	</div>
+
+	<div class="form-row">
+		<label for="strategy">Strategy:</label>
+		<select name="strategy" id="strategy">
+			<option value="jaccard" {% if strategy=='jaccard' %}selected{% endif %}>Jaccard</option>
+			<option value="wupalmer" {% if strategy=='wupalmer' %}selected{% endif %}>Wu-Palmer</option>
+			<option value="resnik" {% if strategy=='resnik' %}selected{% endif %}>Resnik (IC)</option>
+		</select>
+	</div>
+
+	<div class="form-row">
+		<button type="submit" class="search-button">Compute Similarity</button>
+	</div>
+</form>
+
+{% if result is not none or matrix_data or error %}
+<div class="results-box">
+	<h3>Result</h3>
+	{% if error %}
+	<p class="error">{{ error }}</p>
+	{% else %}
+	<p><strong>Mode:</strong> {{ mode|capitalize }} &nbsp;•&nbsp; <strong>Strategy:</strong> {{ strategy }}</p>
+
+	{% if mode == 'term' %}
+	<p class="large-result">Similarity Score: <strong>{{ "%.4f"|format(result) }}</strong></p>
+	{% elif mode == 'gene' %}
+	<p><strong>Overall Score (Average Best Match): {{ "%.4f"|format(result) }}</strong></p>
+	<p><small>Top 5 individual term matches shown below.</small></p>
+	{% endif %}
+
+	{% if matrix_data %}
+	<h4>Gene Similarity Matrix</h4>
+	<div class="summary-box" style="margin-bottom: 1rem; padding: 1rem; background: #e9ecef; border-radius: 5px;">
+		<p style="margin: 0;">
+			<strong>Most Similar Pair:</strong>
+			<a href="/search?query={{ matrix_data.best_pair[0] }}">{{ matrix_data.best_pair[0] }}</a>
+			and
+			<a href="/search?query={{ matrix_data.best_pair[1] }}">{{ matrix_data.best_pair[1] }}</a>
+		</p>
+		<p style="margin: 0.5rem 0 0 0;">
+			Similarity Score: <strong>{{ "%.4f"|format(matrix_data.best_score) }}</strong>
+			<span class="muted-small">(Max matrix value: {{ "%.2f"|format(matrix_data.max_val) }})</span>
+		</p>
+	</div>
+
+	<div class="matrix-container" style="overflow-x: auto;">
+		<table class="annotations-table matrix-table">
+			<thead>
+				<tr>
+					<th></th>
+					{% for label in matrix_data.labels %}
+					<th><a href="/search?query={{ label }}&search_type=gene">{{ label }}</a></th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				{% for row in matrix_data.matrix %}
+				{% set row_idx = loop.index0 %}
+				<tr>
+					<th style="white-space: nowrap;"><strong>{{ matrix_data.labels[row_idx] }}</strong></th>
+					{% for score in row %}
+					{% set col_idx = loop.index0 %}
+					{% set normalized = matrix_data.normalized_matrix[row_idx][col_idx] %}
+					<td title="{{ '%.4f'|format(score) }}"
+						style="background-color: rgba(0, 123, 255, {{ normalized }}); color: {{ 'white' if normalized > 0.8 else 'black' }}; text-align: center; min-width: 40px;">
+						{{ "%.2f"|format(score) }}
+					</td>
+					{% endfor %}
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	{% endif %}
+
+	{% if details %}
+	<h4>{{ "Comparison Details" if mode == 'term' else "Gene vs Gene Similarity" }}</h4>
+	<table class="annotations-table">
+		<thead>
+			<tr>
+				<th>{{ "Term A" if mode == 'term' else "Gene '" + gene_a_query + "' Term" }}</th>
+				<th>{{ "Term B" if mode == 'term' else "Gene '" + gene_b_query + "' Term" }}</th>
+				<th>Score</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in details %}
+			<tr>
+				<td><a href="/term/{{ item.term_a }}">{{ item.term_a }}</a><br><small class="muted">{{ item.term_a_name
+						}}</small></td>
+				<td><a href="/term/{{ item.term_b }}">{{ item.term_b }}</a><br><small class="muted">{{ item.term_b_name
+						}}</small></td>
+				<td>{{ "%.4f"|format(item.score) }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% endif %}
+	{% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/similarity.js') }}"></script>
+{% endblock %}

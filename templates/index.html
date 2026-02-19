@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2>System Dashboard</h2>
+<p>Welcome to the Gene Ontology Analysis System. The database is loaded with the following data:</p>
+<ul>
+    <li><strong>Total Genes Loaded:</strong> {{ stats.gene_count }}</li>
+    <li><strong>Total GO Terms Loaded:</strong> {{ stats.term_count }}</li>
+</ul>
+<p>Use the navigation to explore the ontology and analyze gene annotations.</p>
+{% endblock %}

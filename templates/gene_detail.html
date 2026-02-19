@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Gene: {{ gene.symbol }}{% endblock %}
+
+{% block content %}
+<h2>{{ gene.symbol }} - {{ gene.name }}</h2>
+<p><strong>ID:</strong> {{ gene.id }}</p>
+
+{% if gene.synonyms %}
+<p><strong>Synonyms:</strong> {{ gene.synonyms|join(', ') }}</p>
+{% endif %}
+
+<hr>
+
+<h3>Gene Ontology Annotations</h3>
+{% if annotations %}
+<div class="summary-grid"
+	style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+	<div class="stat-card" style="background: white; padding: 1.5rem; border: 1px solid #dee2e6; border-radius: 8px;">
+		<h4 style="margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem;">Functional Profile</h4>
+		<ul style="list-style: none; padding: 0;">
+			<li style="padding: 0.2rem 0; border-bottom: 1px dashed #e9ecef;">
+				<strong>Biological Process:</strong> {{ aspect_counts['P'] }}
+			</li>
+			<li style="padding: 0.2rem 0; border-bottom: 1px dashed #e9ecef;">
+				<strong>Molecular Function:</strong> {{ aspect_counts['F'] }}
+			</li>
+			<li style="padding: 0.2rem 0; border-bottom: 1px dashed #e9ecef;">
+				<strong>Cellular Component:</strong> {{ aspect_counts['C'] }}
+			</li>
+		</ul>
+	</div>
+	<div class="stat-card" style="background: white; padding: 1.5rem; border: 1px solid #dee2e6; border-radius: 8px;">
+		<h4 style="margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem;">Top Associations</h4>
+		<ol style="padding-left: 1.2rem; margin: 0;">
+			{% for an in top_annotations %}
+			<li style="margin-bottom: 0.3rem;">
+				<a href="/term/{{ an.go_id }}">{{ term_names[an.go_id] }}</a>
+				<span class="muted-small"
+					style="background: #e9ecef; padding: 0 5px; border-radius: 10px; font-size: 0.8em;">{{ an.count
+					}}</span>
+			</li>
+			{% endfor %}
+		</ol>
+	</div>
+</div>
+
+<div class="filters-box"
+	style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;">
+	<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+		<strong>Filter:</strong>
+
+		<select id="aspectFilter" onchange="filterAnnotations()" style="padding: 5px; border-radius: 4px;">
+			<option value="all">All Aspects</option>
+			<option value="P">Biological Process</option>
+			<option value="F">Molecular Function</option>
+			<option value="C">Cellular Component</option>
+		</select>
+
+		<select id="evidenceFilter" onchange="filterAnnotations()" style="padding: 5px; border-radius: 4px;">
+			<option value="all">All Evidence Types</option>
+			<option value="EXP">Experimental</option>
+			<option value="COMP">Computational</option>
+			<option value="IEA">Electronic</option>
+			<option value="OTHER">Other</option>
+		</select>
+
+		<button onclick="resetFilters()"
+			style="padding: 5px 10px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset</button>
+		<span id="filteredCountBadge" class="muted-small" style="margin-left: auto;">Showing all {{ annotations|length
+			}} terms</span>
+	</div>
+</div>
+
+<p>This gene has <strong>{{ gene.total_annotations_count }}</strong> annotation(s) (grouped into {{ annotations|length
+	}} unique terms):</p>
+<table class="annotations-table" id="annotationsTable">
+	<thead>
+		<tr>
+			<th>GO Term</th>
+			<th>Relationship</th>
+			<th>Term Name</th>
+			<th>Evidence Code</th>
+			<th>Aspect</th>
+			<th>Count</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for an in annotations %}
+		<tr data-aspect="{{ an.aspect }}" data-evidence="{{ an.evidence }}">
+			<td><a href="/term/{{ an.go_id }}">{{ an.go_id }}</a></td>
+			<td><span class="relation-badge">{{ an.relation }}</span></td>
+			<td>{{ term_names[an.go_id] }}</td>
+			<td title="{{ evidence_description_map.get(an.evidence, '') }}">{{ an.evidence }}</td>
+			<td
+				title="{% if an.aspect == 'F' %}Molecular Function{% endif %}{% if an.aspect == 'C' %}Cellular Component{% endif %}{% if an.aspect == 'P' %}Biological Process{% endif %}">
+				{{ an.aspect }}
+			</td>
+			<td>{{ an.count }}</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>There are no GO annotations for this gene.</p>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/gene_detail.js') }}"></script>
+{% endblock %}

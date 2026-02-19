@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Term Path Finder{% endblock %}
+
+{% block content %}
+<h2>Term Relationship Path Finder</h2>
+<p class="description">
+    Find the shortest path between any two GO terms by searching for them by name.
+</p>
+
+<div class="examples-box">
+	<strong>Examples:</strong>
+	<a href="/pathfinder?term_a_query=GO%3A0005739+-+Mitochondrion&term_a_id=GO%3A0005739&term_b_query=GO%3A0005743+-+Mitochondrial+inner+membrane&term_b_id=GO%3A0005743">Direct Path Example</a>
+	<a href="/pathfinder?term_a_query=GO%3A0005743%20+-+%20Mitochondrial%20inner%20membrane&term_b_query=GO%3A0005783%20+-+%20Endoplasmic%20reticulum&term_a_id=GO:0005743&term_b_id=GO:0005783">Common Ancestor Example</a>
+</div>
+
+<form action="/pathfinder" method="get" class="similarity-form">
+    <div class="form-row">
+        <div class="autocomplete-container">
+            <input type="text" id="term_a_query" name="term_a_query" placeholder="First Term Name (e.g., mitochondrion)"
+                value="{{ term_a_query or '' }}" required class="search-input autocomplete-input" autocomplete="off">
+            <input type="hidden" id="term_a_id" name="term_a_id" value="{{ term_a_id or '' }}">
+            <div class="autocomplete-results" id="results_a"></div>
+        </div>
+        <div class="autocomplete-container">
+            <input type="text" id="term_b_query" name="term_b_query"
+                placeholder="Second Term Name (e.g., inner membrane)" value="{{ term_b_query or '' }}" required
+                class="search-input autocomplete-input" autocomplete="off">
+            <input type="hidden" id="term_b_id" name="term_b_id" value="{{ term_b_id or '' }}">
+            <div class="autocomplete-results" id="results_b"></div>
+        </div>
+    </div>
+    <div class="form-row">
+        <button type="submit" class="search-button">Find Path</button>
+    </div>
+</form>
+
+{% if path_type or error %}
+<div class="results-box">
+    <h3>Result</h3>
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% elif path_type == 'direct' %}
+    <p><strong>{{ path_direction }}</strong></p>
+    <p>A direct path was found with {{ path|length - 1 }} step(s):</p>
+    <div class="path-container">
+        <ul class="path-list">
+            {% for item in path %}
+            <li>
+                <div class="path-node">
+                    <a href="/term/{{ item.term.id }}">{{ item.term.id }}</a>
+                    <div>{{ item.term.name }}</div>
+                    <span class="muted-small">{{ item.term.namespace }}</span>
+                </div>
+                {% if not loop.last %}
+                <div class="path-edge">
+                    <span class="arrow">&#8593;</span>
+                    <span class="relation-badge">{{ item.relation }}</span>
+                </div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% elif path_type == 'lca' %}
+    <p>No direct path found. Showing path via Nearest Common Ancestor:</p>
+    <div class="lca-container">
+        <div class="path-node lca-node">
+            <strong>Common Ancestor</strong> <a href="/term/{{ lca_path.lca.id }}">{{ lca_path.lca.id }}</a>
+            <span>{{ lca_path.lca.name }}</span>
+        </div>
+        <div class="lca-paths">
+            <div class="path-column">
+                <ul class="path-list">
+                    {% for item in lca_path.path_a %}
+                    <li>
+                        <div class="path-node">
+                            <a href="/term/{{ item.term.id }}">{{ item.term.id }}</a>
+                            <div>{{ item.term.name }}</div>
+                            <span class="muted-small">{{ item.term.namespace }}</span>
+                        </div>
+                        {% if not loop.last %}
+                        <div class="path-edge">
+                            <span class="arrow">&#8593;</span>
+                            <span class="relation-badge">{{ item.relation }}</span>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="path-column">
+                <ul class="path-list">
+                    {% for item in lca_path.path_b %}
+                    <li>
+                        <div class="path-node">
+                            <a href="/term/{{ item.term.id }}">{{ item.term.id }}</a>
+                            <div>{{ item.term.name }}</div>
+                            <span class="muted-small">{{ item.term.namespace }}</span>
+                        </div>
+                        {% if not loop.last %}
+                        <div class="path-edge">
+                            <span class="arrow">&#8593;</span>
+                            <span class="relation-badge">{{ item.relation }}</span>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    setupTermAutocomplete('term_a_query', 'term_a_id', 'results_a');
+    setupTermAutocomplete('term_b_query', 'term_b_id', 'results_b');
+
+    document.querySelector('.similarity-form').addEventListener('submit', function (e) {
+        if (!document.getElementById('term_a_id').value || !document.getElementById('term_b_id').value) {
+            // If the ID isn't set, it might be because the user typed an exact ID.
+            // Let the backend handle the final validation.
+            document.getElementById('term_a_id').value = document.getElementById('term_a_query').value;
+            document.getElementById('term_b_id').value = document.getElementById('term_b_query').value;
+        }
+    });
+</script>
+{% endblock %}

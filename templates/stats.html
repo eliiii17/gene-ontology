@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}System Statistics{% endblock %}
+
+{% block content %}
+<h2>System Statistics</h2>
+<p class="description">
+	Statistical overview of the current Gene Ontology and Annotation data.
+</p>
+
+<h3>Ontology Structure</h3>
+<div class="stats-grid">
+	<div class="stat-card">
+		<h4>Terms by Namespace</h4>
+		<ul>
+			{% for ns, count in stats.ns_counts.items() %}
+			<li><strong>{{ ns }}:</strong> {{ count }}</li>
+			{% endfor %}
+		</ul>
+	</div>
+	<div class="stat-card">
+		<h4>Structure Metrics</h4>
+		<p><strong>Average Parents per Term:</strong> {{ stats.avg_parents }}</p>
+		<p><strong>Average Children per Term:</strong> {{ stats.avg_children }}</p>
+	</div>
+</div>
+
+<hr>
+
+<h3>Gene Annotations</h3>
+<div class="stats-grid">
+	<div class="stat-card">
+		<h4>Annotation Metrics</h4>
+		<p><strong>Total Annotations:</strong> {{ stats.total_annotations }}</p>
+		<p><strong>Average Annotations per Gene:</strong> {{ stats.avg_anns_per_gene }}</p>
+	</div>
+	<div class="stat-card">
+		<h4>Annotations by Aspect</h4>
+		<ul>
+			{% for aspect, count in stats.aspect_stats.items() %}
+			<li><strong>{{ aspect }}:</strong> {{ count }}</li>
+			{% endfor %}
+		</ul>
+	</div>
+	<div class="stat-card">
+		<h4>Top Evidence Codes</h4>
+		<ul>
+			{% for code, count in stats.evidence_counts.items() %}
+			<li><strong>{{ code }}:</strong> {{ count }}</li>
+			{% endfor %}
+		</ul>
+	</div>
+</div>
+
+<h3>Annotation Specificity</h3>
+<div class="stats-grid">
+	<div class="stat-card">
+		<h4>Specificity Metrics</h4>
+		<p><strong>Average Annotation Depth:</strong> {{ stats.avg_annotation_depth }}</p>
+		<p class="description muted-small">Average depth of annotated terms in the ontology graph. Higher values
+			indicate more specific annotations.</p>
+		<br>
+		<p><strong>Leaf Annotation Ratio:</strong> {{ stats.leaf_annotation_ratio }}%</p>
+		<p class="description muted-small">Percentage of annotations mapped to leaf nodes (most specific terms with no
+			children).</p>
+	</div>
+</div>
+
+<hr>
+
+<h3>Top Rankings</h3>
+<div class="stats-grid">
+	<div class="stat-card">
+		<h4>Top 10 Annotated Genes</h4>
+		<ol>
+			{% for gene in stats.top_genes %}
+			<li><a href="/gene/{{ gene.id }}">{{ gene.symbol }}</a> ({{ gene.count }})</li>
+			{% endfor %}
+		</ol>
+	</div>
+	<div class="stat-card">
+		<h4>Top 10 Frequent GO Terms</h4>
+		<ol>
+			{% for term in stats.top_terms %}
+			<li><a href="/term/{{ term.id }}">{{ term.id }}</a> - {{ term.name }} ({{ term.count }})</li>
+			{% endfor %}
+		</ol>
+	</div>
+</div>
+
+{% endblock %}

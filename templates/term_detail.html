@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}GO Term: {{ term.id }}{% endblock %}
+
+{% block content %}
+    <h2>{{ term.name.capitalize() }} ({{ term.id }})</h2>
+    <p><strong>Namespace:</strong> {{ term.namespace }}</p>
+    <p><strong>Definition:</strong> {{ term.definition }}</p>
+
+    <details class="collapsible-details">
+        <summary>Additional Details</summary>
+        <div class="details-grid">
+            <div class="grid-section">
+                <h4>Synonyms</h4>
+                {% if term.synonyms %}
+                    <ul>
+                        {% for synonym in term.synonyms %}
+                            <li>{{ synonym }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No synonyms listed.</p>
+                {% endif %}
+            </div>
+            <div class="grid-section">
+                <h4>Comments</h4>
+                {% if term.comments %}
+                    <ul>
+                        {% for comment in term.comments %}
+                            <li>{{ comment }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No comments listed.</p>
+                {% endif %}
+            </div>
+            <div class="grid-section">
+                <h4>Cross-References (XRefs)</h4>
+                {% if term.xrefs %}
+                    <ul>
+                        {% for xref in term.xrefs %}
+                            <li>{{ xref }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No cross-references listed.</p>
+                {% endif %}
+            </div>
+        </div>
+    </details>
+
+    <hr>
+
+    <h3>Term Neighborhood</h3>
+    <div class="neighborhood-section">
+        <h4>Parents ({{ neighborhood.parents|length or 0 }})</h4>
+        {% if neighborhood.parents %}
+            <ul>
+				{% for parent_id, rel_type in neighborhood.parents.items() %}
+                    <li><a href="/term/{{ parent_id }}">{{ parent_id }}</a> - {{ graph.get_term(parent_id).name }} <span class="muted">({{ rel_type }})</span></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+		<p>This is a root term.</p>
+        {% endif %}
+    </div>
+    <div classs="neighborhood-section">
+		<h4>Children ({{ neighborhood.children|length or 0 }})</h4>
+        {% if neighborhood.children %}
+            <ul>
+                {% for child_id, rel_type in neighborhood.children.items() %}
+                    <li><a href="/term/{{ child_id }}">{{ child_id }}</a> - {{ graph.get_term(child_id).name }} <span class="muted">({{ rel_type }})</span></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>This is a leaf term.</p>
+        {% endif %}
+    </div>
+
+    <h3>Annotated Genes</h3>
+    {% if genes %}
+        <p>Showing {{ genes|length }} gene(s) annotated to this term or its descendants.</p>
+        <ul class="results-list">
+            {% for gene in genes %}
+            <li>
+                <strong><a href="/gene/{{ gene.id }}">{{ gene.symbol }}</a></strong>: {{ gene.name }}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No genes are annotated to this term or its descendants.</p>
+    {% endif %}
+
+{% endblock %}
